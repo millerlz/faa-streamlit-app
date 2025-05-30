@@ -31,3 +31,41 @@ else:
 
     else:
         st.info("No matches found.")
+import openai
+import os
+
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
+st.markdown("---")
+st.header("🤖 AI-Powered Semantic Search")
+
+user_question = st.text_input("Ask a question about the bill", placeholder="e.g. Where does the bill involve NATCA?")
+
+if user_question:
+    st.write("Thinking...")
+    # Chunk the document into paragraphs
+    paragraphs = document.split("\\n\\n")
+    relevant_chunks = [p for p in paragraphs if any(word in p.lower() for word in user_question.lower().split())]
+
+    top_context = "\\n\\n".join(relevant_chunks[:5])[:3000]  # keep GPT input short
+    prompt = f"""You are a legal assistant analyzing FAA legislation.
+Given this excerpt from a reauthorization bill:
+\"\"\"
+{top_context}
+\"\"\"
+
+Answer this question based only on the text above:
+\"{user_question}\"
+"""
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
+        answer = response["choices"][0]["message"]["content"]
+        st.success("AI Response:")
+        st.write(answer)
+    except Exception as e:
+        st.error(f"Error from OpenAI: {e}")
