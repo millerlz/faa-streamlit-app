@@ -1,5 +1,7 @@
 
 import streamlit as st
+import openai
+import os
 
 # Load the FAA Bill
 @st.cache_data
@@ -9,33 +11,34 @@ def load_document():
 
 document = load_document()
 
-# Streamlit UI
-st.title("FAA Reauthorization Bill Search Tool")
+# OpenAI setup
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Keyword Search
-search_query = st.text_input("🔍 Keyword Search", placeholder="e.g., union, NATCA, bargaining unit")
+# Streamlit App Title
+st.title("FAA Reauthorization Bill Analysis Tool")
 
+st.markdown("This tool helps you explore the FAA Reauthorization Bill through keyword search and GPT-powered interpretation.")
+
+# --- Keyword Search ---
+st.header("🔍 Keyword Search")
+
+search_query = st.text_input("Enter a keyword", placeholder="e.g., union, NATCA, bargaining unit")
+
+matches = []
 if search_query:
-    st.write("### Matching Sections")
-    matches = []
     lines = document.split('\n')
     for i, line in enumerate(lines):
         if search_query.lower() in line.lower():
             context = "\n".join(lines[max(0, i-2):i+3])
             matches.append(context)
+
 if matches:
     selected_match = st.selectbox("Select a matching section to preview:", matches)
     st.text_area("Preview", selected_match, height=300)
-else:
+elif search_query:
     st.info("No matches found.")
 
-    else:
-        st.info("No matches found.")
-import openai
-import os
-
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
+# --- GPT Semantic Search ---
 st.markdown("---")
 st.header("🤖 AI-Powered Semantic Search")
 
@@ -44,10 +47,10 @@ user_question = st.text_input("Ask a question about the bill", placeholder="e.g.
 if user_question:
     st.write("Thinking...")
     # Chunk the document into paragraphs
-    paragraphs = document.split("\\n\\n")
+    paragraphs = document.split("\n\n")
     relevant_chunks = [p for p in paragraphs if any(word in p.lower() for word in user_question.lower().split())]
 
-    top_context = "\\n\\n".join(relevant_chunks[:5])[:3000]  # keep GPT input short
+    top_context = "\n\n".join(relevant_chunks[:5])[:3000]  # limit token count
     prompt = f"""You are a legal assistant analyzing FAA legislation.
 Given this excerpt from a reauthorization bill:
 \"\"\"
