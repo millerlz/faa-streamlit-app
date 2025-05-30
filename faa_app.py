@@ -62,13 +62,12 @@ Answer this question based only on the text above:
 """
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.2
-        )
-        answer = response["choices"][0]["message"]["content"]
-        st.success("AI Response:")
-        st.write(answer)
+       response = openai.ChatCompletion.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": prompt}],
+    temperature=0.2
+)
+answer = response["choices"][0]["message"]["content"]
+
     except Exception as e:
         st.error(f"Error from OpenAI: {e}")
