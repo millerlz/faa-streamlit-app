@@ -1,6 +1,6 @@
-
 import streamlit as st
 from openai import OpenAI
+from io import StringIO
 import os
 
 # Load the FAA Bill
@@ -9,12 +9,31 @@ def load_document():
     with open("faa_bill.txt", "r", encoding="utf-8") as file:
         return file.read()
 
+# Load base bill
 base_text = load_document()
-document = base_text + "\\n\\n" + extra_text
 
-# Streamlit App Title
+# --- File Upload ---
+uploaded_file = st.file_uploader("📁 Upload a document to include in the analysis", type=["txt", "pdf"])
+
+extra_text = ""
+if uploaded_file:
+    try:
+        if uploaded_file.type == "application/pdf":
+            from PyPDF2 import PdfReader
+            reader = PdfReader(uploaded_file)
+            extra_text = "\n".join([page.extract_text() or "" for page in reader.pages])
+        else:
+            stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+            extra_text = stringio.read()
+    except Exception as e:
+        st.error(f"Could not process uploaded file: {e}")
+
+# Combine original bill with uploaded content
+document = base_text + "\n\n" + extra_text
+
+# --- Streamlit App Title ---
 st.title("FAA Reauthorization Bill Analysis Tool")
-st.markdown("This tool helps you explore the FAA Reauthorization Bill through keyword search and GPT-powered interpretation.")
+st.markdown("Search the FAA Reauthorization Bill and any uploaded documents using keyword and GPT-powered semantic search.")
 
 # --- Keyword Search ---
 st.header("🔍 Keyword Search")
@@ -51,7 +70,7 @@ if user_question:
     top_context = "\n\n".join(relevant_chunks[:5])[:3000]  # limit token count
 
     prompt = f"""You are a legal assistant analyzing FAA legislation.
-Given this excerpt from a reauthorization bill:
+Given this excerpt from legislative and supporting documents:
 \"\"\"
 {top_context}
 \"\"\"
@@ -64,7 +83,7 @@ Answer this question based only on the text above:
         client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
         response = client.chat.completions.create(
-       model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2
         )
@@ -72,18 +91,6 @@ Answer this question based only on the text above:
         answer = response.choices[0].message.content
         st.success("AI Response:")
         st.write(answer)
-
-
-    uploaded_file = st.file_uploader("📁 Upload a document to include in the analysis", type=["txt", "pdf"])
-
-extra_text = ""
-if uploaded_file:
-    if uploaded_file.type == "application/pdf":
-        from PyPDF2 import PdfReader
-        reader = PdfReader(uploaded_file)
-        extra_text = "\n".join([page.extract_text() or "" for page in reader.pages])
-    else:
-        extra_text = uploaded_file.read().decode("utf-8")
 
     except Exception as e:
         st.error(f"Error from OpenAI: {e}")
