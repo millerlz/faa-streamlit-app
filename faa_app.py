@@ -1,3 +1,4 @@
+st.caption("🛠 Updated version deployed on May 30")
 
 import streamlit as st
 from openai import OpenAI
