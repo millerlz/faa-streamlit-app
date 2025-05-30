@@ -1,6 +1,6 @@
 
 import streamlit as st
-import openai
+from openai import OpenAI
 import os
 
 # Load the FAA Bill
@@ -11,12 +11,8 @@ def load_document():
 
 document = load_document()
 
-# OpenAI setup
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
 # Streamlit App Title
 st.title("FAA Reauthorization Bill Analysis Tool")
-
 st.markdown("This tool helps you explore the FAA Reauthorization Bill through keyword search and GPT-powered interpretation.")
 
 # --- Keyword Search ---
@@ -46,11 +42,13 @@ user_question = st.text_input("Ask a question about the bill", placeholder="e.g.
 
 if user_question:
     st.write("Thinking...")
+
     # Chunk the document into paragraphs
     paragraphs = document.split("\n\n")
     relevant_chunks = [p for p in paragraphs if any(word in p.lower() for word in user_question.lower().split())]
 
     top_context = "\n\n".join(relevant_chunks[:5])[:3000]  # limit token count
+
     prompt = f"""You are a legal assistant analyzing FAA legislation.
 Given this excerpt from a reauthorization bill:
 \"\"\"
@@ -62,18 +60,17 @@ Answer this question based only on the text above:
 """
 
     try:
-       from openai import OpenAI
+        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2
+        )
 
-response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": prompt}],
-    temperature=0.2
-)
-
-answer = response.choices[0].message.content
-
+        answer = response.choices[0].message.content
+        st.success("AI Response:")
+        st.write(answer)
 
     except Exception as e:
         st.error(f"Error from OpenAI: {e}")
