@@ -9,7 +9,8 @@ def load_document():
     with open("faa_bill.txt", "r", encoding="utf-8") as file:
         return file.read()
 
-document = load_document()
+base_text = load_document()
+document = base_text + "\\n\\n" + extra_text
 
 # Streamlit App Title
 st.title("FAA Reauthorization Bill Analysis Tool")
@@ -71,6 +72,18 @@ Answer this question based only on the text above:
         answer = response.choices[0].message.content
         st.success("AI Response:")
         st.write(answer)
+
+
+    uploaded_file = st.file_uploader("📁 Upload a document to include in the analysis", type=["txt", "pdf"])
+
+extra_text = ""
+if uploaded_file:
+    if uploaded_file.type == "application/pdf":
+        from PyPDF2 import PdfReader
+        reader = PdfReader(uploaded_file)
+        extra_text = "\n".join([page.extract_text() or "" for page in reader.pages])
+    else:
+        extra_text = uploaded_file.read().decode("utf-8")
 
     except Exception as e:
         st.error(f"Error from OpenAI: {e}")
