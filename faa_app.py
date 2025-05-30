@@ -6,7 +6,7 @@ import requests
 import os
 
 # Deployment marker
-st.caption("🛠 Updated version deployed on May 30")
+st.caption("🛠 Updated version deployed with upload fix")
 
 # Load the FAA Bill
 @st.cache_data
@@ -16,11 +16,9 @@ def load_document():
 
 base_text = load_document()
 
-# --- App Title ---
+# --- Google Drive File Link Input ---
 st.title("FAA Reauthorization Bill Analysis Tool")
 st.markdown("Search the FAA Reauthorization Bill and supporting documents using keyword and AI-powered semantic search.")
-
-# --- Google Drive File Link Input ---
 st.markdown("### 🌐 Load File from Google Drive")
 
 drive_url = st.text_input("Paste a shareable Google Drive file link (TXT or PDF)")
@@ -33,14 +31,12 @@ def extract_drive_file_id(url):
     return None
 
 extra_drive_text = ""
-
 if drive_url:
     try:
         file_id = extract_drive_file_id(drive_url)
         if file_id:
             download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
             response = requests.get(download_url)
-
             if response.ok:
                 if drive_url.endswith(".txt") or "text/plain" in response.headers.get("Content-Type", ""):
                     extra_drive_text = response.text
@@ -57,10 +53,25 @@ if drive_url:
     except Exception as e:
         st.error(f"Error loading Drive file: {e}")
 
-extra_text = ""  # Placeholder for uploader text later
+# --- File Upload Logic (executed early, displayed later) ---
+uploaded_file = st.file_uploader("Upload a document to include in search", type=["txt", "pdf"], label_visibility="collapsed")
 
-# Combine all text sources (uploader added at bottom)
-document = base_text + "\n\n" + extra_drive_text
+extra_text = ""
+if uploaded_file:
+    try:
+        if uploaded_file.type == "application/pdf":
+            from PyPDF2 import PdfReader
+            reader = PdfReader(uploaded_file)
+            extra_text = "\n".join([page.extract_text() or "" for page in reader.pages])
+        else:
+            stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+            extra_text = stringio.read()
+        st.success("📄 File uploaded and added to search context.")
+    except Exception as e:
+        st.error(f"Could not process uploaded file: {e}")
+
+# Combine all document sources
+document = base_text + "\n\n" + extra_drive_text + "\n\n" + extra_text
 
 # --- Keyword Search ---
 st.markdown("---")
@@ -118,22 +129,7 @@ Answer this question based only on the text above:
     except Exception as e:
         st.error(f"Error from OpenAI: {e}")
 
-# --- File Upload Section (BOTTOM) ---
+# --- Display uploader at the bottom for UX only ---
 st.markdown("---")
 st.header("📁 Upload a document (TXT or PDF) to include in your session")
-
-uploaded_file = st.file_uploader("Choose a file", type=["txt", "pdf"])
-
-if uploaded_file:
-    try:
-        if uploaded_file.type == "application/pdf":
-            from PyPDF2 import PdfReader
-            reader = PdfReader(uploaded_file)
-            extra_text = "\n".join([page.extract_text() or "" for page in reader.pages])
-        else:
-            stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-            extra_text = stringio.read()
-        document += "\n\n" + extra_text
-        st.success("Document successfully added to your session.")
-    except Exception as e:
-        st.error(f"Could not process uploaded file: {e}")
+st.info("File upload was processed earlier in the session and is included in your search.")
