@@ -17,23 +17,6 @@ base_text = load_document()
 st.title("FAA Reauthorization Bill Analysis Tool")
 st.markdown("Search the FAA Reauthorization Bill and supporting documents using keyword and AI-powered semantic search.")
 
-# --- File Upload Section (TXT or PDF) ---
-st.markdown("### 📁 Upload a document (TXT or PDF)")
-uploaded_file = st.file_uploader("Choose a file", type=["txt", "pdf"])
-
-extra_text = ""
-if uploaded_file:
-    try:
-        if uploaded_file.type == "application/pdf":
-            from PyPDF2 import PdfReader
-            reader = PdfReader(uploaded_file)
-            extra_text = "\n".join([page.extract_text() or "" for page in reader.pages])
-        else:
-            stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
-            extra_text = stringio.read()
-    except Exception as e:
-        st.error(f"Could not process uploaded file: {e}")
-
 # --- Google Drive File Link Input ---
 st.markdown("---")
 st.header("🌐 Load File from Google Drive")
@@ -72,8 +55,10 @@ if drive_url:
     except Exception as e:
         st.error(f"Error loading Drive file: {e}")
 
+extra_text = ""  # Placeholder in case uploader used later
+
 # Combine all text sources
-document = base_text + "\n\n" + extra_text + "\n\n" + extra_drive_text
+document = base_text + "\n\n" + extra_drive_text
 
 # --- Keyword Search ---
 st.header("🔍 Keyword Search")
@@ -129,3 +114,23 @@ Answer this question based only on the text above:
         st.write(answer)
     except Exception as e:
         st.error(f"Error from OpenAI: {e}")
+
+# --- File Upload Section (TXT or PDF) ---
+st.markdown("---")
+st.header("📁 Upload a document (TXT or PDF) to include in your session")
+
+uploaded_file = st.file_uploader("Choose a file", type=["txt", "pdf"])
+
+if uploaded_file:
+    try:
+        if uploaded_file.type == "application/pdf":
+            from PyPDF2 import PdfReader
+            reader = PdfReader(uploaded_file)
+            extra_text = "\n".join([page.extract_text() or "" for page in reader.pages])
+        else:
+            stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+            extra_text = stringio.read()
+        document += "\n\n" + extra_text
+        st.success("Document successfully added to your session.")
+    except Exception as e:
+        st.error(f"Could not process uploaded file: {e}")
