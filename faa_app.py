@@ -1,10 +1,12 @@
-st.caption("🛠 Updated version deployed on May 30")
 
 import streamlit as st
 from openai import OpenAI
 from io import StringIO, BytesIO
 import requests
 import os
+
+# Deployment marker
+st.caption("🛠 Updated version deployed on May 30")
 
 # Load the FAA Bill
 @st.cache_data
@@ -14,13 +16,12 @@ def load_document():
 
 base_text = load_document()
 
-# --- Streamlit App Title ---
+# --- App Title ---
 st.title("FAA Reauthorization Bill Analysis Tool")
 st.markdown("Search the FAA Reauthorization Bill and supporting documents using keyword and AI-powered semantic search.")
 
 # --- Google Drive File Link Input ---
-st.markdown("---")
-st.header("🌐 Load File from Google Drive")
+st.markdown("### 🌐 Load File from Google Drive")
 
 drive_url = st.text_input("Paste a shareable Google Drive file link (TXT or PDF)")
 
@@ -56,12 +57,13 @@ if drive_url:
     except Exception as e:
         st.error(f"Error loading Drive file: {e}")
 
-extra_text = ""  # Placeholder in case uploader used later
+extra_text = ""  # Placeholder for uploader text later
 
-# Combine all text sources
+# Combine all text sources (uploader added at bottom)
 document = base_text + "\n\n" + extra_drive_text
 
 # --- Keyword Search ---
+st.markdown("---")
 st.header("🔍 Keyword Search")
 
 search_query = st.text_input("Enter a keyword", placeholder="e.g., union, NATCA, bargaining unit")
@@ -116,7 +118,7 @@ Answer this question based only on the text above:
     except Exception as e:
         st.error(f"Error from OpenAI: {e}")
 
-# --- File Upload Section (TXT or PDF) ---
+# --- File Upload Section (BOTTOM) ---
 st.markdown("---")
 st.header("📁 Upload a document (TXT or PDF) to include in your session")
 
