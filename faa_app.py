@@ -23,9 +23,11 @@ if search_query:
         if search_query.lower() in line.lower():
             context = "\n".join(lines[max(0, i-2):i+3])
             matches.append(context)
+if matches:
+    selected_match = st.selectbox("Select a matching section to preview:", matches)
+    st.text_area("Preview", selected_match, height=300)
+else:
+    st.info("No matches found.")
 
-    if matches:
-        for match in matches:
-            st.text_area("Result", match, height=150)
     else:
         st.info("No matches found.")
